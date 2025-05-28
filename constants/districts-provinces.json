@@ -1,0 +1,152 @@
+[
+    {
+        "id": 1,
+        "province": "eastern",
+        "district": "bugesera"
+    },
+    {
+        "id": 2,
+        "province": "eastern",
+        "district": "gatsibo"
+    },
+    {
+        "id": 3,
+        "province": "eastern",
+        "district": "kayonza"
+    },
+    {
+        "id": 4,
+        "province": "eastern",
+        "district": "kirehe"
+    },
+    {
+        "id": 5,
+        "province": "eastern",
+        "district": "ngoma"
+    },
+    {
+        "id": 6,
+        "province": "eastern",
+        "district": "nyagatare"
+    },
+    {
+        "id": 7,
+        "province": "eastern",
+        "district": "rwamagana"
+    },
+    {
+        "id": 8,
+        "province": "kigali",
+        "district": "gasabo"
+    },
+    {
+        "id": 9,
+        "province": "kigali",
+        "district": "kicukiro"
+    },
+    {
+        "id": 10,
+        "province": "kigali",
+        "district": "nyarugenge"
+    },
+    {
+        "id": 11,
+        "province": "northern",
+        "district": "burera"
+    },
+    {
+        "id": 12,
+        "province": "northern",
+        "district": "gakenke"
+    },
+    {
+        "id": 13,
+        "province": "northern",
+        "district": "gicumbi"
+    },
+    {
+        "id": 14,
+        "province": "northern",
+        "district": "musanze"
+    },
+    {
+        "id": 15,
+        "province": "northern",
+        "district": "rulindo"
+    },
+    {
+        "id": 16,
+        "province": "southern",
+        "district": "gisagara"
+    },
+    {
+        "id": 17,
+        "province": "southern",
+        "district": "huye"
+    },
+    {
+        "id": 18,
+        "province": "southern",
+        "district": "kamonyi"
+    },
+    {
+        "id": 19,
+        "province": "southern",
+        "district": "muhanga"
+    },
+    {
+        "id": 20,
+        "province": "southern",
+        "district": "nyamagabe"
+    },
+    {
+        "id": 21,
+        "province": "southern",
+        "district": "nyanza"
+    },
+    {
+        "id": 22,
+        "province": "southern",
+        "district": "nyaruguru"
+    },
+    {
+        "id": 23,
+        "province": "southern",
+        "district": "ruhango"
+    },
+    {
+        "id": 24,
+        "province": "western",
+        "district": "karongi"
+    },
+    {
+        "id": 25,
+        "province": "western",
+        "district": "ngororero"
+    },
+    {
+        "id": 26,
+        "province": "western",
+        "district": "nyabihu"
+    },
+    {
+        "id": 27,
+        "province": "western",
+        "district": "nyamasheke"
+    },
+    {
+        "id": 28,
+        "province": "western",
+        "district": "rubavu"
+    },
+    {
+        "id": 29,
+        "province": "western",
+        "district": "rusizi"
+    },
+    {
+        "id": 30,
+        "province": "western",
+        "district": "rutsiro"
+    }
+]

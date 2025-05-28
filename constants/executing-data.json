@@ -1,0 +1,97 @@
+[
+  {
+    "id": "exec-001",
+    "facilityName": "Kabarondo Health Center",
+    "facilityType": "Health Center",
+    "facilityDistrict": "Kayonza",
+    "province": "Eastern",
+    "program": "HIV",
+    "fiscalYear": "2023-2024",
+    "createdAt": "2023-08-15T09:30:00Z",
+    "updatedAt": "2023-08-18T14:45:00Z",
+    "status": "draft",
+    "reportingPeriod": "JULY - SEPTEMBER / 2023",
+    "projectName": "HIV NSP BUDGET SUPPORT",
+    "submittedBy": "John Doe",
+    "submittedAt": "2023-08-16T10:15:00Z",
+    "approvedBy": "Jane Smith",
+    "approvedAt": "2023-08-18T11:30:00Z",
+    "financialData": {
+      "tableData": [
+        {
+          "id": "a",
+          "title": "A. Receipt",
+          "isCategory": true,
+          "q1": 8500000,
+          "q2": 0,
+          "q3": 0,
+          "q4": 0,
+          "cumulativeBalance": 8500000,
+          "children": [
+            {
+              "id": "a1",
+              "title": "Opening Balances",
+              "q1": 500000,
+              "q2": 0,
+              "q3": 0,
+              "q4": 0,
+              "cumulativeBalance": 500000,
+              "isEditable": true
+            },
+            {
+              "id": "a2",
+              "title": "Transfers from SPIU/RBC",
+              "q1": 8000000,
+              "q2": 0,
+              "q3": 0,
+              "q4": 0,
+              "cumulativeBalance": 8000000,
+              "isEditable": true
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "title": "B. Expenditures",
+          "isCategory": true,
+          "q1": 5750000,
+          "q2": 0,
+          "q3": 0,
+          "q4": 0,
+          "cumulativeBalance": 5750000,
+          "children": [
+            {
+              "id": "b01",
+              "title": "Human Resources",
+              "isCategory": true,
+              "q1": 3200000,
+              "q2": 0,
+              "q3": 0,
+              "q4": 0,
+              "cumulativeBalance": 3200000,
+              "children": [
+                {
+                  "id": "b01-1",
+                  "title": "Laboratory Technician",
+                  "q1": 1200000,
+                  "q2": 0,
+                  "q3": 0,
+                  "q4": 0,
+                  "cumulativeBalance": 1200000,
+                  "isEditable": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "metadata": {
+        "healthCenter": "Kabarondo Health Center",
+        "district": "Kayonza",
+        "project": "HIV NSP BUDGET SUPPORT",
+        "reportingPeriod": "JULY - SEPTEMBER / 2023",
+        "fiscalYear": "2023-2024"
+      }
+    }
+  }
+]
