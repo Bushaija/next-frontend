@@ -1,23 +1,11 @@
 "use server";
+
 import { redirect } from "next/navigation";
-import { registerUser } from "@/app/openapi-client/sdk.gen";
-import { getErrorMessage } from "@/lib/utils";
-import { z } from "zod";
+import { registerSchema } from "@/lib/db/schema";
+import { revalidatePath } from "next/cache";
 
-const registerSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string(),
-  province: z.string().min(1, "Province is required"),
-  district: z.string().min(1, "District is required"),
-  hospital: z.string().min(1, "Hospital is required"),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
-});
-
-export async function register(prevState: unknown, formData: FormData) {
+// Enhanced server action that works seamlessly with TanStack Query
+export async function registerWithQuery(prevState: unknown, formData: FormData) {
   const validatedFields = registerSchema.safeParse({
     name: formData.get("name") as string,
     email: formData.get("email") as string,
@@ -34,89 +22,67 @@ export async function register(prevState: unknown, formData: FormData) {
     };
   }
 
-  const {
-    name,
-    email,
-    password,
-    confirmPassword,
-    province,
-    district,
-    hospital,
-  } = validatedFields.data;
+  // Instead of calling the API directly, we'll return a success state
+  // and let the client-side code handle the API call via TanStack Query
+  return {
+    success: true,
+    data: validatedFields.data,
+  };
+}
+
+// Alternative: Direct API integration for server actions
+export async function registerDirect(prevState: unknown, formData: FormData) {
+  const validatedFields = registerSchema.safeParse({
+    name: formData.get("name") as string,
+    email: formData.get("email") as string,
+    password: formData.get("password") as string,
+    confirmPassword: formData.get("confirmPassword") as string,
+    province: formData.get("province") as string,
+    district: formData.get("district") as string,
+    hospital: formData.get("hospital") as string,
+  });
+
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+    };
+  }
 
   try {
-    const response = await registerUser({
-      body: {
-        name,
-        email,
-        password,
-        confirmPassword,
-        province,
-        district,
-        hospital,
+    // Make API call to our Next.js API route
+    const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify(validatedFields.data),
     });
 
-    // Check if registration was successful
-    if (!response.data) {
-      return { 
-        server_validation_error: "Registration failed. Please try again." 
+    const result = await response.json();
+
+    if (!response.ok) {
+      if (result.details) {
+        return {
+          errors: result.details,
+        };
+      }
+      
+      return {
+        server_error: result.error || 'Registration failed. Please try again.',
       };
     }
 
-    console.log("User registered successfully:", response.data);
+    // Revalidate the path to clear any cached data
+    revalidatePath('/');
     
-  } catch (err: any) {
-    console.error("Registration error:", err);
+    console.log("User registered successfully:", result.user);
     
-    // Handle specific API errors
-    if (err?.response?.status === 400) {
-      const errorDetail = err.response.data?.detail;
-      
-      if (errorDetail === "The user with this email already exists in the system") {
-        return {
-          errors: {
-            email: ["An account with this email already exists"]
-          }
-        };
-      }
-      
-      if (errorDetail === "Password and confirm password do not match") {
-        return {
-          errors: {
-            confirmPassword: ["Passwords do not match"]
-          }
-        };
-      }
-      
-      // Handle other validation errors from the server
-      if (typeof errorDetail === "string") {
-        return { 
-          server_validation_error: errorDetail 
-        };
-      }
-    }
-    
-    if (err?.response?.status === 422) {
-      // Handle validation errors from FastAPI
-      const validationErrors = err.response.data?.detail;
-      if (Array.isArray(validationErrors)) {
-        const fieldErrors: Record<string, string[]> = {};
-        validationErrors.forEach((error: any) => {
-          const field = error.loc?.[error.loc.length - 1];
-          if (field) {
-            fieldErrors[field] = fieldErrors[field] || [];
-            fieldErrors[field].push(error.msg);
-          }
-        });
-        return { errors: fieldErrors };
-      }
-    }
-
+  } catch (error) {
+    console.error("Registration error:", error);
     return {
       server_error: "An unexpected error occurred. Please try again later.",
     };
   }
 
   redirect(`/sign-in`);
-}
+} 

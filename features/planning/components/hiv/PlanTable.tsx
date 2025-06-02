@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useForm, FormProvider, SubmitHandler, Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { 
@@ -91,12 +91,19 @@ export function PlanTable({
   const form = useForm<Plan>({
     resolver: zodResolver(planSchema) as Resolver<Plan>,
     defaultValues: {
-      activities: initialActivities || generateDefaultActivities(isHospital)
+      activities: initialActivities || generateDefaultActivities(isHospital),
+      generalTotalBudget: 0
     }
   });
   
-  const { watch, handleSubmit, formState: { errors } } = form;
+  const { watch, handleSubmit, formState: { errors }, setValue } = form;
   const activities = watch('activities');
+  
+  // Update generalTotalBudget whenever activities change
+  useEffect(() => {
+    const total = activities.reduce((sum, activity) => sum + (activity.totalBudget || 0), 0);
+    setValue('generalTotalBudget', total);
+  }, [activities, setValue]);
   
   // Memoize categorized activities to prevent recalculation on every render
   const categorizedActivities = useMemo(() => {
@@ -134,9 +141,13 @@ export function PlanTable({
     try {
       setIsSubmitting(true);
       
-      // Prepare clean data for backend by adding metadata
+      // Calculate general total budget from all activities
+      const generalTotalBudget = activities.reduce((sum, activity) => sum + (activity.totalBudget || 0), 0);
+      
+      // Prepare clean data for backend by adding metadata and general total
       const cleanData = {
-        ...data,
+        activities: data.activities,
+        generalTotalBudget,
         planId,
         isHospital,
         metadata: {
@@ -147,27 +158,32 @@ export function PlanTable({
           period,
           program,
           submittedBy,
-          status: status === 'draft' ? 'pending' : status, // Set to pending when submitting a draft
+          status: status === 'draft' ? 'pending' : status,
           submittedAt: new Date().toISOString()
         }
       };
       
-      console.log('Form submitted:', cleanData);
+      // Log the exact data being sent
+      console.log('Form submitted data:', JSON.stringify(cleanData, null, 2));
       
       // Send data to the backend
       const response = await fetch('/api/plan', {
         method: isEdit ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(cleanData)
       });
       
       if (!response.ok) {
-        throw new Error('Failed to save plan');
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || 'Failed to save plan');
       }
       
       // Success handling
       if (onSubmitSuccess) {
-        onSubmitSuccess(data);
+        onSubmitSuccess(cleanData);
       } else {
         alert('Plan saved successfully!');
       }
@@ -186,6 +202,7 @@ export function PlanTable({
   
   // Check if there are validation errors
   const hasErrors = Object.keys(errors).length > 0;
+  
   
   // Format currency for display
   const formatCurrency = (value: number) => {
@@ -279,7 +296,32 @@ export function PlanTable({
           <div className="bg-red-50 p-4 rounded-md border border-red-200 mb-4">
             <p className="text-red-600 font-medium">Please fix the following errors:</p>
             <ul className="list-disc ml-5 mt-2 text-red-600">
-              {errors.activities && <li>Activity data is incomplete or invalid</li>}
+              {errors.activities && (
+                <>
+                  {Array.isArray(errors.activities) ? (
+                    errors.activities.map((error, index) => (
+                      <li key={index}>
+                        Activity {index + 1}: {error?.message || 'Invalid data'}
+                      </li>
+                    ))
+                  ) : (
+                    <li>{errors.activities.message || 'Activity data is incomplete or invalid'}</li>
+                  )}
+                </>
+              )}
+              {errors.generalTotalBudget && (
+                <li>General Total Budget: {errors.generalTotalBudget.message}</li>
+              )}
+              {Object.entries(errors).map(([field, error]) => {
+                if (field !== 'activities' && field !== 'generalTotalBudget' && error?.message) {
+                  return (
+                    <li key={field}>
+                      {field}: {error.message}
+                    </li>
+                  );
+                }
+                return null;
+              })}
             </ul>
           </div>
         )}

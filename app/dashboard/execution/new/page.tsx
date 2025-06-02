@@ -103,11 +103,11 @@ const ExecutionReport = () => {
   const { hospital, district, program: defaultProgram, facilities = [] } = useUserSession();
   
   // Get all parameters from URL with default values
-  const facilityName = searchParams.get('facilityName') || hospital || '';
-  const facilityType = searchParams.get('facilityType') || '';
-  const facilityDistrict = searchParams.get('district') || district || '';
+  const facilityName = searchParams.get('facilityName') || hospital || 'Butaro';
+  const facilityType = searchParams.get('facilityType') || 'hospital';
+  const facilityDistrict = searchParams.get('district') || district || 'Butaro';
   const programName = searchParams.get('program') || defaultProgram || "HIV";
-  const fiscalYear = searchParams.get('fiscalYear') || '';
+  const fiscalYear = searchParams.get('fiscalYear') || '2023-2024';
   
   // Function to update URL parameters
   const updateUrlParams = (params: Record<string, string>) => {

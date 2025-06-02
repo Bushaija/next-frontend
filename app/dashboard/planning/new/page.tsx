@@ -13,16 +13,16 @@ export default function HIVNewPlan() {
   const { province, email } = useOnboardingStore();
   
   // Get values from query params, fallback to store values
-  const queryFacilityType = searchParams.get('facilityType');
+  const queryFacilityType = searchParams.get('facilityType') === 'hospital' ? 'hospital' : 'clinic';
   const isHospital = queryFacilityType === 'hospital';
   
   // Prepare metadata for the plan
   const planMetadata = {
-    facilityName: facilityName || searchParams.get('facilityName') || '',
-    facilityType: facilityType || queryFacilityType || '',
-    district: facilityDistrict || searchParams.get('district') || '',
+    facilityName: facilityName || searchParams.get('facilityName') || 'Burera',
+    facilityType: facilityType || queryFacilityType || 'Hospital',
+    district: facilityDistrict || searchParams.get('district') || 'Burera',
     province: province || '',
-    period: selectedFiscalYear || searchParams.get('fiscalYear') || '',
+    period: selectedFiscalYear || searchParams.get('fiscalYear') || '2024-2025',
     program: selectedProgram || searchParams.get('program') || 'HIV Program',
     submittedBy: email || 'Not specified',
     status: 'draft' as 'draft' | 'pending' | 'approved' | 'rejected'

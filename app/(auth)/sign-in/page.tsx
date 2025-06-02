@@ -5,37 +5,27 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
-
-import { login } from "@/components/actions/login-action"
-import { useActionState } from "react"
-import { FieldError } from '@/components/ui/FormError'
+import { useRouter } from 'next/navigation'
+import { useLoginForm } from '@/lib/hooks/use-auth'
 
 export default function SignInPage() {
-    const [state, dispatch] = useActionState(login, undefined)
+    const router = useRouter()
+    const { login, isLoading, reset } = useLoginForm()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [errors, setErrors] = useState<Record<string, string>>({})
 
-    // Handle success/error notifications
-    useEffect(() => {
-        if (state?.errors) {
-            // Check if there are field-specific errors
-            const hasFieldErrors = Object.keys(state.errors).some(
-                key => state.errors[key] && state.errors[key].length > 0
-            )
+    const checkCookies = () => {
+        if (typeof window !== 'undefined') {
+            console.log('🍪 All browser cookies:', document.cookie)
             
-            if (hasFieldErrors) {
-                // Show a general error toast for field validation errors
-                toast.error('Please check your credentials and try again')
-            }
+            // Check if auth_token is in localStorage (which our login sets)
+            const localToken = localStorage.getItem('auth_token')
+            console.log('💾 Token in localStorage:', localToken ? localToken.substring(0, 20) + '...' : 'None')
         }
-        
-        if (state?.server_error) {
-            toast.error(state.server_error)
-        }
-    }, [state])
+    }
 
     const validateEmail = (email: string) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -50,33 +40,92 @@ export default function SignInPage() {
         return ''
     }
 
-    const handleSubmit = async (formData: FormData) => {
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        
+        // Clear previous errors
+        setErrors({})
+        
         // Client-side validation
         const emailValidation = validateEmail(email)
         const passwordValidation = validatePassword(password)
         
         if (emailValidation || passwordValidation) {
+            const newErrors: Record<string, string> = {}
+            if (emailValidation) newErrors.email = emailValidation
+            if (passwordValidation) newErrors.password = passwordValidation
+            setErrors(newErrors)
             toast.error('Please fix the validation errors')
             return
         }
 
-        setIsSubmitting(true)
-        
         try {
-            // The dispatch will handle the server action
-            await dispatch(formData)
+            const result = await login({ email, password })
+            
+            if (result.success) {
+                toast.success('🎉 Login successful! Welcome back!')
+                
+                // Clear form
+                setEmail('')
+                setPassword('')
+                reset()
+                
+                // Check cookies before redirecting
+                checkCookies()
+                
+                // Add a small delay to ensure cookie is set before redirect
+                console.log('🔄 Login successful, redirecting in 1000ms...')
+                setTimeout(() => {
+                    console.log('🚀 Redirecting to /dashboard/home')
+                    
+                    // Check cookies again just before redirect
+                    checkCookies()
+                    
+                    // Try Next.js router first
+                    router.push('/dashboard/home')
+                    
+                    // Fallback to window.location after a brief delay
+                    setTimeout(() => {
+                        if (typeof window !== 'undefined') {
+                            console.log('🔄 Fallback: Using window.location.href')
+                            window.location.href = '/dashboard/home'
+                        }
+                    }, 100)
+                }, 1000) // Increased delay to 1 second
+            } else {
+                // Handle API errors
+                if (result.errors) {
+                    const formErrors: Record<string, string> = {}
+                    
+                    Object.entries(result.errors).forEach(([field, errorArray]) => {
+                        if (Array.isArray(errorArray) && errorArray.length > 0) {
+                            formErrors[field] = errorArray[0]
+                        }
+                    })
+                    
+                    setErrors(formErrors)
+                    
+                    // Show toast for first error
+                    const firstError = Object.values(formErrors)[0]
+                    if (firstError) {
+                        toast.error(firstError)
+                    }
+                } else if (result.serverError) {
+                    toast.error(result.serverError)
+                } else {
+                    toast.error('Login failed. Please try again.')
+                }
+            }
         } catch (error) {
             console.error('Login error:', error)
             toast.error('An unexpected error occurred')
-        } finally {
-            setIsSubmitting(false)
         }
     }
     
     return (
         <section className="flex min-h-screen bg-zinc-50 px-4 py-16 md:py-32 dark:bg-transparent">
             <form
-                action={handleSubmit}
+                onSubmit={handleSubmit}
                 className="bg-card m-auto h-fit w-full max-w-sm rounded-[calc(var(--radius)+.125rem)] border p-0.5 shadow-md dark:[--color-muted:var(--color-zinc-900)]"
                 aria-label="Sign in form">
                 <div className="p-8 pb-6">
@@ -91,20 +140,6 @@ export default function SignInPage() {
                     </div>
 
                     <hr className="my-4 border-dashed" />
-
-                    {/* Display server errors */}
-                    {state?.server_error && (
-                        <div className="mb-4 rounded-md bg-destructive/15 p-3 text-sm text-destructive" role="alert">
-                            {state.server_error}
-                        </div>
-                    )}
-
-                    {/* Display general authentication errors */}
-                    {state?.errors && !state.errors.email && !state.errors.password && (
-                        <div className="mb-4 rounded-md bg-destructive/15 p-3 text-sm text-destructive" role="alert">
-                            Authentication failed. Please check your credentials.
-                        </div>
-                    )}
 
                     <div className="space-y-5">
                         <div className="space-y-2">
@@ -122,18 +157,21 @@ export default function SignInPage() {
                                 onChange={(e) => setEmail(e.target.value)}
                                 onBlur={(e) => {
                                     const error = validateEmail(e.target.value)
-                                    if (error && !state?.errors?.email) {
-                                        // Only show validation toast if there's no server error
-                                        toast.error(error)
+                                    if (error && !errors.email) {
+                                        setErrors(prev => ({ ...prev, email: error }))
                                     }
                                 }}
-                                className={state?.errors?.email ? "border-destructive" : ""}
-                                disabled={isSubmitting}
-                                aria-invalid={!!state?.errors?.email}
-                                aria-describedby={state?.errors?.email ? "email-error" : undefined}
+                                className={errors.email ? "border-destructive" : ""}
+                                disabled={isLoading}
+                                aria-invalid={!!errors.email}
+                                aria-describedby={errors.email ? "email-error" : undefined}
                                 placeholder="Enter your email"
                             />
-                            <FieldError state={state} field="email" />
+                            {errors.email && (
+                                <p id="email-error" className="text-sm text-destructive" role="alert">
+                                    {errors.email}
+                                </p>
+                            )}
                         </div>
 
                         <div className="space-y-2">
@@ -151,18 +189,21 @@ export default function SignInPage() {
                                 onChange={(e) => setPassword(e.target.value)}
                                 onBlur={(e) => {
                                     const error = validatePassword(e.target.value)
-                                    if (error && !state?.errors?.password) {
-                                        // Only show validation toast if there's no server error
-                                        toast.error(error)
+                                    if (error && !errors.password) {
+                                        setErrors(prev => ({ ...prev, password: error }))
                                     }
                                 }}
-                                className={`input sz-md variant-mixed ${state?.errors?.password ? "border-destructive" : ""}`}
-                                disabled={isSubmitting}
-                                aria-invalid={!!state?.errors?.password}
-                                aria-describedby={state?.errors?.password ? "password-error" : undefined}
+                                className={`input sz-md variant-mixed ${errors.password ? "border-destructive" : ""}`}
+                                disabled={isLoading}
+                                aria-invalid={!!errors.password}
+                                aria-describedby={errors.password ? "password-error" : undefined}
                                 placeholder="Enter your password"
                             />
-                            <FieldError state={state} field="password" />
+                            {errors.password && (
+                                <p id="password-error" className="text-sm text-destructive" role="alert">
+                                    {errors.password}
+                                </p>
+                            )}
                             <div className="text-right text-sm">
                                 <Button
                                     asChild
@@ -176,9 +217,9 @@ export default function SignInPage() {
                         <Button
                             type="submit"
                             className="w-full"
-                            disabled={isSubmitting}
-                            aria-busy={isSubmitting}>
-                            {isSubmitting ? (
+                            disabled={isLoading}
+                            aria-busy={isLoading}>
+                            {isLoading ? (
                                 <>
                                     <span className="mr-2">Signing in</span>
                                     <span className="animate-spin">⟳</span>
@@ -190,7 +231,7 @@ export default function SignInPage() {
                     </div>
                 </div>
 
-                <div className="bg-muted rounded-(--radius) border p-3">
+                <div className="bg-muted rounded-[--radius] border p-3">
                     <p className="text-accent-foreground text-center text-sm">
                         {"Don't have an account?"}
                         <Button

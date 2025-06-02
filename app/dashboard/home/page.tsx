@@ -28,6 +28,17 @@ type FacilityData = {
   "health-centers": string[];
 };
 
+// Define user type based on login response
+type User = {
+  id: string;
+  name: string;
+  email: string;
+  province: string;
+  district: string;
+  hospital: string;
+  createdAt: string;
+};
+
 // Skeleton component for health center cards
 const HealthCenterCardSkeleton = () => {
   return (
@@ -66,6 +77,7 @@ const MainPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [facilityPrograms, setFacilityPrograms] = useState<Program[]>([]);
   const [healthCenters, setHealthCenters] = useState<string[]>([]);
 
@@ -98,6 +110,33 @@ const MainPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isChangingPage, setIsChangingPage] = useState(false);
   
+  // Function to get current user from localStorage
+  const getCurrentUser = useCallback((): User | null => {
+    if (typeof window === 'undefined') return null;
+    
+    try {
+      const userStr = localStorage.getItem('user');
+      if (!userStr) {
+        console.warn('No user data found in localStorage');
+        return null;
+      }
+      
+      const user = JSON.parse(userStr) as User;
+      console.log('📋 Current user data:', {
+        name: user.name,
+        email: user.email,
+        province: user.province,
+        district: user.district,
+        hospital: user.hospital
+      });
+      
+      return user;
+    } catch (error) {
+      console.error('Error parsing user data from localStorage:', error);
+      return null;
+    }
+  }, []);
+
   // Function to preserve existing query parameters when adding a new one
   const updateUrlWithFacilityType = useCallback((type: string) => {
     const params = new URLSearchParams(window.location.search);
@@ -105,35 +144,31 @@ const MainPage = () => {
     params.set('reportingPeriod', reportingPeriod);
     router.push(`?${params.toString()}`);
   }, [router, reportingPeriod]);
-
-  // Get facility data from URL parameters with null checks
-  const facilityName = searchParams.get('facilityName') || '';
-  const district = searchParams.get('district') || '';
   
-  // Function to find facility data based on facility name
-  const getFacilityData = useCallback(() => {
-    if (!facilityName) {
-      if (process.env.NODE_ENV === "development") {
-        console.error("Facility name is missing from URL parameters");
-      }
-      return;
-    }
+  // Function to filter facility data based on user's geographical location and hospital
+  const getUserFacilityData = useCallback((user: User) => {
+    console.log('🔍 Filtering facilities for user:', {
+      hospital: user.hospital,
+      district: user.district,
+      province: user.province
+    });
 
-    // Convert both to lowercase and trim for comparison
-    const normalizedFacility = facilityName.toLowerCase().trim();
+    // Convert user hospital name to lowercase for comparison
+    const userHospital = user.hospital.toLowerCase().trim();
     
-    // Get all programs available for this facility
+    // Get all programs available for this user's hospital
     const programsForFacility: Program[] = [];
     const allHealthCenters: string[] = [];
     
     facilitiesData.forEach((facility: FacilityData) => {
-      const facilityExists = facility.hospitals.some(
-        h => h.toLowerCase().trim() === normalizedFacility
-      ) || facility["health-centers"].some(
-        hc => hc.toLowerCase().trim() === normalizedFacility
+      // Check if user's hospital exists in this facility's hospitals list
+      const hospitalExists = facility.hospitals.some(
+        h => h.toLowerCase().trim() === userHospital
       );
       
-      if (facilityExists) {
+      if (hospitalExists) {
+        console.log(`✅ Found program for ${user.hospital}:`, facility.program);
+        
         programsForFacility.push({
           name: facility.program.toUpperCase(),
           status: true
@@ -147,29 +182,86 @@ const MainPage = () => {
     // Remove duplicates from health centers array
     const uniqueHealthCenters = [...new Set(allHealthCenters)];
     
+    console.log('📊 Facility data results:', {
+      programs: programsForFacility.length,
+      healthCenters: uniqueHealthCenters.length
+    });
+    
     setFacilityPrograms(programsForFacility);
     setHealthCenters(uniqueHealthCenters);
     
-    if (process.env.NODE_ENV === "development" && programsForFacility.length === 0) {
-      console.warn("No programs found for facility:", facilityName);
+    if (process.env.NODE_ENV === "development") {
+      if (programsForFacility.length === 0) {
+        console.warn("No programs found for user's hospital:", user.hospital);
+        console.log("Available hospitals in data:", 
+          facilitiesData.flatMap(f => f.hospitals).filter((h, i, arr) => arr.indexOf(h) === i)
+        );
+      }
     }
-  }, [facilityName]);
+  }, []);
 
+  // Load user data and facility information
   useEffect(() => {
-    // Add a small delay to ensure data is loaded
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-      getFacilityData();
-    }, 1000);
+    const initializeData = async () => {
+      console.log('🚀 Initializing dashboard data...');
+      
+      // Get current user data
+      const user = getCurrentUser();
+      
+      if (!user) {
+        console.error('❌ No user data available, redirecting to sign-in');
+        router.push('/sign-in');
+        return;
+      }
+      
+      setCurrentUser(user);
+      
+      // Filter facility data based on user's information
+      getUserFacilityData(user);
+      
+      // Add a small delay to show loading state
+      setTimeout(() => {
+        setIsLoading(false);
+        console.log('✅ Dashboard data loaded successfully');
+      }, 1000);
+    };
 
-    return () => clearTimeout(timer);
-  }, [getFacilityData]);
+    initializeData();
+  }, [getCurrentUser, getUserFacilityData, router]);
 
   // Show loading state while data is being fetched
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-lg">Loading...</p>
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-lg">Loading your dashboard...</p>
+          {currentUser && (
+            <p className="text-sm text-muted-foreground">
+              Welcome back, {currentUser.name}!
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // If no user data, show error state
+  if (!currentUser) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="p-6 text-center max-w-md">
+          <h2 className="text-xl font-semibold mb-2">Session Expired</h2>
+          <p className="text-muted-foreground mb-4">
+            Please log in again to access your dashboard.
+          </p>
+          <button 
+            onClick={() => router.push('/sign-in')}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          >
+            Go to Sign In
+          </button>
+        </Card>
       </div>
     );
   }
@@ -205,19 +297,32 @@ const MainPage = () => {
 
   // Debug information only in development
   if (process.env.NODE_ENV === "development") {
-    // Log the current facilityType from URL
     console.log('Current facilityType from URL:', facilityType);
+    console.log('Current user:', currentUser);
+    console.log('Facility programs:', facilityPrograms);
+    console.log('Health centers:', healthCenters.length);
   }
 
   return (
     <main className="p-4">
+      {/* Welcome header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          Welcome, {currentUser.name}
+        </h1>
+        <p className="text-muted-foreground">
+          {currentUser.hospital} • {currentUser.district}, {currentUser.province}
+        </p>
+      </div>
       
       <div className="flex flex-col gap-8">
-        {facilityName && (
+        {/* User's Hospital Dashboard Card */}
+        <section>
+          <h2 className="text-xl font-semibold mb-4">Your Hospital</h2>
           <DashboardCard 
             healthFacilityType={"Hospital"}
-            healthFacilityName={facilityName}
-            district={district}
+            healthFacilityName={currentUser.hospital}
+            district={currentUser.district}
             programs={facilityPrograms}
             reportingPeriodOptions={reportingPeriodOptions}
             reportingPeriod={reportingPeriod}
@@ -225,11 +330,14 @@ const MainPage = () => {
               updateUrlWithFacilityType('hospital');
             }}
           />
-        )}
+        </section>
       
+        {/* Associated Health Centers */}
         {healthCenters.length > 0 ? (
           <section id="health-centers-section" className="flex flex-col gap-6">
-            <h2 className="text-xl font-semibold">Associated Health Centers</h2>
+            <h2 className="text-xl font-semibold">
+              Associated Health Centers ({healthCenters.length})
+            </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {isChangingPage ? (
@@ -245,7 +353,7 @@ const MainPage = () => {
                     reportingPeriod={reportingPeriod}
                     healthFacilityType={"Health Center"}
                     healthFacilityName={center}
-                    district={district}
+                    district={currentUser.district}
                     programs={facilityPrograms}
                     reportingPeriodOptions={reportingPeriodOptions}
                     onClick={() => {
@@ -323,7 +431,13 @@ const MainPage = () => {
         ) : (
           <section className="mt-6">
             <Card className="p-6 text-center text-gray-600">
-              <p>No health centers are currently linked to <strong>{facilityName}</strong>. Please check back later or contact support.</p>
+              <h3 className="text-lg font-semibold mb-2">No Associated Health Centers</h3>
+              <p>
+                No health centers are currently linked to <strong>{currentUser.hospital}</strong> in our system.
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                If you believe this is an error, please contact your system administrator.
+              </p>
             </Card>
           </section>
         )}

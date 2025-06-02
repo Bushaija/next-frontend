@@ -7,22 +7,23 @@ export const activitySchema = z.object({
   activityCategory: z.string(),
   typeOfActivity: z.string(),
   activity: z.string().optional(),
-  frequency: z.number().min(1, "Frequency is required"),
-  unitCost: z.number().min(1, "Unit cost is required"),
-  countQ1: z.number().optional().default(0),
-  countQ2: z.number().optional().default(0),
-  countQ3: z.number().optional().default(0),
-  countQ4: z.number().optional().default(0),
+  frequency: z.number().min(1, "Frequency must be at least 1"),
+  unitCost: z.number().min(1, "Unit cost must be at least 1"),
+  countQ1: z.number().min(0, "Count Q1 cannot be negative").optional().default(0),
+  countQ2: z.number().min(0, "Count Q2 cannot be negative").optional().default(0),
+  countQ3: z.number().min(0, "Count Q3 cannot be negative").optional().default(0),
+  countQ4: z.number().min(0, "Count Q4 cannot be negative").optional().default(0),
   amountQ1: z.number().optional(),
   amountQ2: z.number().optional(),
   amountQ3: z.number().optional(),
   amountQ4: z.number().optional(),
-  totalBudget: z.number().optional(), 
+  totalBudget: z.number().optional(),
   comment: z.string().optional(),
 });
 
 export const planSchema = z.object({
-  activities: z.array(activitySchema)
+  activities: z.array(activitySchema).min(1, "At least one activity is required"),
+  generalTotalBudget: z.number().min(0, "General total budget must be a positive number").optional()
 });
 
 export type Activity = z.infer<typeof activitySchema>;

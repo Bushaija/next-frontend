@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { useOnboardingStore } from "@/store/onboarding-store";
 import { getDistrictsByProvince, getHospitals } from "@/lib/utils/location-utils";
 import { useRegisterForm } from "@/lib/hooks/use-auth";
-import { ApiRegisterInput } from "@/lib/db/schema";
+import { RegisterInput } from "@/lib/db/schema";
 
 const initialValues: FormItems = {
   name: "",
@@ -186,31 +186,6 @@ export default function RegisterPageWithQuery() {
       return;
     }
   
-    // Final submission - validate all required fields before submission
-    const allRequiredFields: Array<keyof FormItems> = ['name', 'email', 'password', 'province', 'district', 'hospital'];
-    const finalValidationErrors: Partial<Record<keyof FormItems, string>> = {};
-    
-    for (const field of allRequiredFields) {
-      const value = formData[field]?.trim();
-      if (!value || value.length === 0) {
-        finalValidationErrors[field] = `${field.charAt(0).toUpperCase() + field.slice(1)} is required`;
-      }
-    }
-    
-    // Additional password validation
-    if (formData.password && formData.password.length < 6) {
-      finalValidationErrors.password = "Password must be at least 6 characters";
-    }
-    
-    if (Object.keys(finalValidationErrors).length > 0) {
-      setErrors(finalValidationErrors);
-      const firstError = Object.values(finalValidationErrors)[0];
-      if (firstError) {
-        toast.error(firstError);
-      }
-      return;
-    }
-  
     // Final submission using TanStack Query
     setRegistrationStatus('loading');
     
@@ -232,18 +207,9 @@ export default function RegisterPageWithQuery() {
         hospital: registrationData.hospital.trim(),
       };
       
-      // Double-check that no field is empty after cleaning
-      for (const [key, value] of Object.entries(cleanedData)) {
-        if (!value || (typeof value === 'string' && value.length === 0)) {
-          toast.error(`${key.charAt(0).toUpperCase() + key.slice(1)} cannot be empty`);
-          setRegistrationStatus('error');
-          return;
-        }
-      }
-      
       console.log('Submitting registration data:', cleanedData);
       
-      const result = await register(cleanedData as ApiRegisterInput);
+      const result = await register(cleanedData as RegisterInput);
       
       console.log('Registration result:', result);
       console.log('Result success:', result.success);
