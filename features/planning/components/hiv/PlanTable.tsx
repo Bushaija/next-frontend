@@ -42,6 +42,7 @@ interface PlanTableProps {
     period?: string;
     program?: string;
     submittedBy?: string;
+    createdBy?: string;
     status?: 'draft' | 'pending' | 'approved' | 'rejected';
   };
 }
@@ -67,6 +68,7 @@ export function PlanTable({
     period = "Current Period",
     program = "HIV Program",
     submittedBy = "Not specified",
+    createdBy = "Not specified",
     status = "draft"
   } = metadata;
   
@@ -144,27 +146,53 @@ export function PlanTable({
       // Calculate general total budget from all activities
       const generalTotalBudget = activities.reduce((sum, activity) => sum + (activity.totalBudget || 0), 0);
       
-      // Prepare clean data for backend by adding metadata and general total
+      // Filter out empty or invalid activities (activities with no meaningful data)
+      const validActivities = data.activities.filter(activity => {
+        // Keep activities that have at least some data entry
+        const hasFrequency = activity.frequency && activity.frequency > 0;
+        const hasUnitCost = activity.unitCost && activity.unitCost > 0;
+        const hasCounts = (activity.countQ1 || 0) > 0 || (activity.countQ2 || 0) > 0 || 
+                         (activity.countQ3 || 0) > 0 || (activity.countQ4 || 0) > 0;
+        
+        return hasFrequency && hasUnitCost && hasCounts;
+      });
+
+      console.log(`📊 Filtered ${validActivities.length} valid activities from ${data.activities.length} total activities`);
+      
+      // Validate that we have at least one valid activity
+      if (validActivities.length === 0) {
+        throw new Error('Please fill in at least one activity with frequency, unit cost, and quarterly counts.');
+      }
+      
+      // Prepare clean data for backend - match the insertPlanSchema structure
       const cleanData = {
-        activities: data.activities,
-        generalTotalBudget,
-        planId,
+        // Top-level fields as expected by the backend schema
+        facilityName,
+        facilityType,
+        district,
+        province,
+        period,
+        program,
         isHospital,
-        metadata: {
-          facilityName,
-          facilityType,
-          district,
-          province,
-          period,
-          program,
-          submittedBy,
-          status: status === 'draft' ? 'pending' : status,
-          submittedAt: new Date().toISOString()
-        }
+        createdBy,
+        submittedBy,
+        activities: validActivities.map((activity, index) => ({
+          activityCategory: activity.activityCategory,
+          typeOfActivity: activity.typeOfActivity,
+          activity: activity.activity || "",
+          frequency: Number(activity.frequency) || 1,
+          unitCost: Number(activity.unitCost) || 0,
+          countQ1: Number(activity.countQ1) || 0,
+          countQ2: Number(activity.countQ2) || 0,
+          countQ3: Number(activity.countQ3) || 0,
+          countQ4: Number(activity.countQ4) || 0,
+          comment: activity.comment || "",
+          sortOrder: index
+        }))
       };
       
       // Log the exact data being sent
-      console.log('Form submitted data:', JSON.stringify(cleanData, null, 2));
+      console.log('📄 Form submitted data:', JSON.stringify(cleanData, null, 2));
       
       // Send data to the backend
       const response = await fetch('/api/plan', {
@@ -178,12 +206,25 @@ export function PlanTable({
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.message || 'Failed to save plan');
+        console.error('❌ API Error Response:', errorData);
+        
+        // Show detailed validation errors if available
+        if (errorData?.errors) {
+          const errorMessages = Object.entries(errorData.errors)
+            .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
+            .join('\n');
+          throw new Error(`Validation failed:\n${errorMessages}`);
+        }
+        
+        throw new Error(errorData?.message || `HTTP ${response.status}: Failed to save plan`);
       }
+      
+      const responseData = await response.json();
+      console.log('✅ Success Response:', responseData);
       
       // Success handling
       if (onSubmitSuccess) {
-        onSubmitSuccess(cleanData);
+        onSubmitSuccess(responseData.data || cleanData);
       } else {
         alert('Plan saved successfully!');
       }
@@ -193,7 +234,7 @@ export function PlanTable({
         router.push('/planning');
       }
     } catch (error) {
-      console.error('Error saving plan:', error);
+      console.error('💥 Error saving plan:', error);
       alert(`Failed to save plan: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
@@ -238,7 +279,7 @@ export function PlanTable({
               <div>
                 <div className="space-y-2">
                   
-                  {/* <div className="flex">
+                  <div className="flex">
                     <span className="font-semibold w-32">Status:</span>
                     <span className="capitalize">
                       <span className={`inline-block px-2 py-1 text-xs rounded-full ${
@@ -253,11 +294,11 @@ export function PlanTable({
                         {status}
                       </span>
                     </span>
-                  </div> */}
-                  {/* <div className="flex">
-                    <span className="font-semibold w-32">Submitted by:</span>
-                    <span>{submittedBy}</span>
-                  </div> */}
+                  </div>
+                  <div className="flex">
+                    <span className="font-semibold w-32">Created by:</span>
+                    <span>{createdBy}</span>
+                  </div>
                 </div>
               </div>
             </div>

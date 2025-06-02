@@ -168,18 +168,18 @@ export default function ResetPasswordPage() {
 
                     {!isSubmitted ? (
                         <form onSubmit={handleSubmit} className="space-y-5">
-                            <div className="space-y-2">
-                                <Label
-                                    htmlFor="password"
+                        <div className="space-y-2">
+                            <Label
+                                htmlFor="password"
                                     className="block text-sm font-medium">
-                                    New Password
-                                </Label>
+                                New Password
+                            </Label>
                                 <div className="relative">
-                                    <Input
+                            <Input
                                         type={showPassword ? "text" : "password"}
-                                        required
-                                        name="password"
-                                        id="password"
+                                required
+                                name="password"
+                                id="password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         onBlur={(e) => {
@@ -213,20 +213,20 @@ export default function ResetPasswordPage() {
                                         {errors.password}
                                     </p>
                                 )}
-                            </div>
+                        </div>
 
-                            <div className="space-y-2">
-                                <Label
-                                    htmlFor="confirmPassword"
+                        <div className="space-y-2">
+                            <Label
+                                htmlFor="confirmPassword"
                                     className="block text-sm font-medium">
                                     Confirm New Password
-                                </Label>
+                            </Label>
                                 <div className="relative">
-                                    <Input
+                            <Input
                                         type={showConfirmPassword ? "text" : "password"}
-                                        required
-                                        name="confirmPassword"
-                                        id="confirmPassword"
+                                required
+                                name="confirmPassword"
+                                id="confirmPassword"
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
                                         onBlur={(e) => {
@@ -260,7 +260,7 @@ export default function ResetPasswordPage() {
                                         {errors.confirmPassword}
                                     </p>
                                 )}
-                            </div>
+                        </div>
 
                             <Button
                                 type="submit"
@@ -288,14 +288,14 @@ export default function ResetPasswordPage() {
                                 <p className="text-sm text-muted-foreground">
                                     Redirecting you to the sign in page...
                                 </p>
-                            </div>
-                            
+                    </div>
+
                             <Button
                                 onClick={() => router.push('/sign-in')}
                                 className="w-full">
                                 Continue to Sign In
                             </Button>
-                        </div>
+                    </div>
                     )}
                 </div>
 

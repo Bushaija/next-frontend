@@ -8,7 +8,7 @@ export const activitySchema = z.object({
   typeOfActivity: z.string(),
   activity: z.string().optional(),
   frequency: z.number().min(1, "Frequency must be at least 1"),
-  unitCost: z.number().min(1, "Unit cost must be at least 1"),
+  unitCost: z.number().min(0.01, "Unit cost must be greater than 0"),
   countQ1: z.number().min(0, "Count Q1 cannot be negative").optional().default(0),
   countQ2: z.number().min(0, "Count Q2 cannot be negative").optional().default(0),
   countQ3: z.number().min(0, "Count Q3 cannot be negative").optional().default(0),
