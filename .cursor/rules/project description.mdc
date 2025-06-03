@@ -1,0 +1,57 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Core Frontend Features
+Authentication Flow
+
+Multi-step registration (Account → Work Info → Review)
+Login/logout with password reset
+
+Dashboard Navigation
+
+Sidebar menu with Home, Planning, Execution, Reports sections
+Facility-based access control
+
+Home/Facility Management
+
+Display hospital and health center cards based on user's location
+Program selection dialogs (HIV, TB, Malaria)
+Fiscal year selection before planning
+
+Planning Interface
+
+Dynamic planning forms (different for hospitals vs health centers)
+Quarterly budget entry (Q1-Q4) with auto-calculations
+Activity categorization and management
+Metadata tracking (facility, program, fiscal year)
+
+Execution Tracking
+
+Tabbed interface (Planned Activities | Executed Activities)
+Complex nested financial data entry
+Real-time balance calculations
+Budget vs actual validation
+
+Financial Reports Dashboard
+
+5 hybrid (editable & auto-generated) financial statements:
+
+Revenue & Expenditure
+Balance Sheet
+Cash Flow
+Changes in Net Assets
+Budget vs Actual
+
+
+Export functionality (PDF/Excel)
+
+Interactive Elements
+
+Modal dialogs for selections
+Form validation and error handling
+Responsive data tables
+Real-time calculations and totals
+
+The frontend is essentially a financial planning and tracking system with facility-specific workflows and automated reporting capabilities.
